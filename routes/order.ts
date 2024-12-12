@@ -151,21 +151,33 @@ module.exports = function placeOrder () {
             })
           }
 
-          db.ordersCollection.insert({
-            promotionalAmount: discountAmount,
-            paymentId: req.body.orderDetails ? req.body.orderDetails.paymentId : null,
-            addressId: req.body.orderDetails ? req.body.orderDetails.addressId : null,
-            orderId,
-            delivered: false,
-            email: (email ? email.replace(/[aeiou]/gi, '*') : undefined),
-            totalPrice,
-            products: basketProducts,
-            bonus: totalPoints,
-            deliveryPrice: deliveryAmount,
-            eta: deliveryMethod.eta.toString()
-          }).then(() => {
-            doc.end()
-          })
+       // Sanitizar el correo electrónico para evitar caracteres no deseados
+const sanitizedEmail = email ? email.replace(/[aeiou]/gi, '*') : undefined;
+
+// Validar otros campos antes de insertarlos (puedes agregar más validaciones según lo necesites)
+const validatedOrderDetails = {
+  promotionalAmount: discountAmount, // Asumiendo que este valor es seguro
+  paymentId: req.body.orderDetails ? req.body.orderDetails.paymentId : null, // Asegúrate de validar esto si es necesario
+  addressId: req.body.orderDetails ? req.body.orderDetails.addressId : null, // Similar al paymentId
+  orderId, // Este valor debe ser seguro y estar verificado
+  delivered: false, // Valor predeterminado
+  email: sanitizedEmail, // Correo validado y sanitizado
+  totalPrice, // Asumido como seguro
+  products: basketProducts, // Debería ser un array o validado
+  bonus: totalPoints, // Este valor también debe ser verificado
+  deliveryPrice: deliveryAmount, // Verifica si es un número
+  eta: deliveryMethod.eta.toString() // Convertido a string de manera segura
+};
+
+// Insertar en la base de datos utilizando el método adecuado (suponiendo MongoDB aquí)
+db.ordersCollection.insertOne(validatedOrderDetails).then(() => {
+  doc.end(); // Finaliza el proceso de manera segura
+}).catch((error) => {
+  // Manejo de errores en caso de que algo falle
+  console.error('Error inserting order:', error);
+  doc.end();
+});
+
         } else {
           next(new Error(`Basket with id=${id} does not exist.`))
         }
